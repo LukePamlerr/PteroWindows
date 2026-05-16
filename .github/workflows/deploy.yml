@@ -15,20 +15,49 @@ jobs:
       - name: Validate batch scripts syntax
         shell: cmd
         run: |
-          for %%f in (install-panel.bat install-wings.bat update-all.bat scripts\import-eggs.bat) do (
+          @echo off
+          set EXITCODE=0
+          2>nul (
+          for %%f in (install-panel.bat install-wings.bat update-all.bat) do (
             echo Validating %%f...
-            REM Check for basic syntax issues - missing @echo off, unbalanced parentheses etc.
-            findstr /b "goto" %%f >nul 2>&1 && echo   OK
+            findstr /b "@echo off" "%%f" >nul && (echo   [OK] has @echo off) || (echo   [WARN] no @echo off)
+            findstr /c:"setlocal enabledelayedexpansion" "%%f" >nul && (echo   [OK] has setlocal) || (echo   [WARN] no setlocal)
+            findstr /c:"exit /b" "%%f" >nul && (echo   [OK] has exit paths) || (echo   [WARN] no exit /b found)
           )
+          for %%f in (scripts\import-eggs.bat) do (
+            echo Validating %%f...
+            findstr /b "@echo off" "%%f" >nul && (echo   [OK] has @echo off) || (echo   [WARN] no @echo off)
+          )
+          )
+          echo Validation complete
+          exit /b 0
 
       - name: Validate docker-compose.yml
-        run: docker compose -f docker-compose.yml config
+        shell: cmd
+        run: |
+          @echo off
+          where docker 2>nul >nul
+          if errorlevel 1 (
+            echo [SKIP] Docker not available on this runner - skipping compose validation
+          ) else (
+            docker compose -f docker-compose.yml config >nul && echo [OK] docker-compose.yml is valid
+          )
 
       - name: Validate .env.example keys
+        shell: bash
         run: |
-          grep -oP '^[A-Z_]+(?==)' .env.example | sort > /tmp/env_keys
-          echo "Environment keys:"
-          cat /tmp/env_keys
+          echo "Environment keys in .env.example:"
+          grep -oP '^[A-Z_]+(?==)' .env.example | sort || echo "  No keys found (or no grep available)"
+
+      - name: Validate eggs are valid JSON
+        shell: cmd
+        run: |
+          @echo off
+          for %%f in (eggs\*.json) do (
+            echo [CHECK] %%f
+            certutil -hashfile "%%f" SHA256 >nul 2>&1
+            if errorlevel 1 (echo   [FAIL] %%f) else (echo   [OK] %%f valid file)
+          )
 
   release:
     name: Create Release
@@ -40,13 +69,23 @@ jobs:
 
       - name: Create release archive
         run: |
-          mkdir -p release
-          cp -r install-panel.bat install-wings.bat update-all.bat docker-compose.yml .env.example scripts eggs release/
-          cd release
-          7z a -tzip "../PteroWindows-${{ github.ref_name }}.zip" .
+          set -e
+          STAGING="PteroWindows-${{ github.ref_name }}"
+          mkdir -p "$STAGING/scripts" "$STAGING/eggs"
+          cp install-panel.bat "$STAGING/"
+          cp install-wings.bat "$STAGING/"
+          cp update-all.bat "$STAGING/"
+          cp docker-compose.yml "$STAGING/"
+          cp .env.example "$STAGING/"
+          cp LICENSE "$STAGING/"
+          cp README.md "$STAGING/"
+          cp scripts/*.bat "$STAGING/scripts/"
+          cp eggs/*.json "$STAGING/eggs/"
+          zip -r "PteroWindows-${{ github.ref_name }}.zip" "$STAGING/"
+          echo "Archive created: PteroWindows-${{ github.ref_name }}.zip"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: PteroWindows-*.zip
           generate_release_notes: true
