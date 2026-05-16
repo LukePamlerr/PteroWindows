@@ -18,7 +18,7 @@ jobs:
           @echo off
           set EXITCODE=0
           2>nul (
-          for %%f in (install-panel.bat install-wings.bat update-all.bat) do (
+          for %%f in (PteroWindows.bat install-panel.bat install-wings.bat update-all.bat) do (
             echo Validating %%f...
             findstr /b "@echo off" "%%f" >nul && (echo   [OK] has @echo off) || (echo   [WARN] no @echo off)
             findstr /c:"setlocal enabledelayedexpansion" "%%f" >nul && (echo   [OK] has setlocal) || (echo   [WARN] no setlocal)
@@ -72,6 +72,7 @@ jobs:
           set -e
           STAGING="PteroWindows-${{ github.ref_name }}"
           mkdir -p "$STAGING/scripts" "$STAGING/eggs"
+          cp PteroWindows.bat "$STAGING/"
           cp install-panel.bat "$STAGING/"
           cp install-wings.bat "$STAGING/"
           cp update-all.bat "$STAGING/"

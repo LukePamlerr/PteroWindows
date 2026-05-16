@@ -1,104 +1,42 @@
 @echo off
 setlocal enabledelayedexpansion
 
-title PteroWindows - Pterodactyl Panel Installer
+title PteroWindows - Panel Installer
 color 0B
 
 echo.
-echo   ____  _        _____                     _                _   ___
-echo  ^|  _ \^| ^|      ^| ____^|_ ____   _____  ___^| ^|_   ___  __ _^| ^| ^|__ \
-echo  ^| ^|_) ^| ^|      ^|  _^| ^| '_ \ \ / / _ \/ __^| __^| / __^|/ _` ^| ^|   / /
-echo  ^|  __/^| ^|___   ^| ^|___^| ^| ^| \ V /  __/\__ \ ^|_  \__ \ (_^| ^| ^|  ^|_^|
-echo  ^|_^|   ^|_____^|  ^|_____^|_^| ^|_|\_/ \___^|^|___/\__^| ^|___/\__,_^|_^|  (_^)
-echo.
-echo  Pterodactyl Panel Installer for Windows
-echo  Panel v1.12.2 ^| Wings v1.12.1 ^| May 15, 2026
+echo  ========================================
+echo    Pterodactyl Panel Installer
+echo    v1.12.2 | May 15, 2026
+echo  ========================================
 echo.
 
-:: --- Admin check ---
+:ADMIN_CHECK
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  [WARN] Not running as Administrator. Some operations may fail.
-    set /p CONTINUE="  Continue anyway? (y/N): "
+    set /p CONTINUE="  Continue? (y/N): "
     if /i "!CONTINUE!" neq "y" exit /b 1
 )
-echo.
 
-:: --- Step 1: Prerequisites ---
-echo [1/7] Checking prerequisites...
-echo.
-
+:CHECK_DOCKER
+echo  [1] Checking Docker...
 where docker >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [FAIL] Docker is not installed.
-    echo  Download Docker Desktop from: https://docs.docker.com/desktop/install/windows-install/
+    echo  [FAIL] Docker not installed.
+    echo  Download: https://docs.docker.com/desktop/install/windows-install/
     pause
     exit /b 1
 )
-echo  [OK] Docker: installed
-
 docker info >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [FAIL] Docker Desktop is not running. Please start it.
+    echo  [FAIL] Docker Desktop not running. Please start it.
     pause
     exit /b 1
 )
-echo  [OK] Docker daemon: running
+echo  [OK] Docker is installed and running
 
-where git >nul 2>&1
-if %errorlevel% neq 0 (
-    echo  [FAIL] Git is not installed.
-    echo  Download from: https://git-scm.com/download/win
-    pause
-    exit /b 1
-)
-echo  [OK] Git: installed
-
-where wsl >nul 2>&1
-if %errorlevel% equ 0 (
-    echo  [OK] WSL: available
-) else (
-    echo  [WARN] WSL not detected (only needed for Wings, not the panel)
-)
-
-echo.
-
-:: --- Step 2: Environment ---
-echo [2/7] Setting up environment...
-
-if not exist ".env" (
-    if exist ".env.example" (
-        copy ".env.example" ".env" >nul
-        echo  [INFO] Created .env from .env.example
-        echo  [INFO] Open .env in a text editor and set your values.
-        echo  [INFO] At minimum: DB_PASSWORD, DB_ROOT_PASSWORD, APP_URL
-        echo.
-        set /p DUMMY="  Press Enter after you've configured .env..."
-    ) else (
-        echo  [FAIL] .env.example not found!
-        pause
-        exit /b 1
-    )
-) else (
-    echo  [OK] .env file exists
-)
-
-:: Create data directories
-if not exist "data\database" mkdir "data\database"
-if not exist "data\panel\var" mkdir "data\panel\var"
-if not exist "data\panel\logs" mkdir "data\panel\logs"
-if not exist "data\panel\nginx" mkdir "data\panel\nginx"
-if not exist "data\panel\certs" mkdir "data\panel\certs"
-if not exist "eggs" mkdir "eggs"
-if not exist "scripts" mkdir "scripts"
-echo  [OK] Directories created
-
-echo.
-
-:: --- Step 3: Docker Compose ---
-echo [3/7] Starting Docker services...
-
-:: Detect available compose command
+:: Detect compose command
 docker compose version >nul 2>&1
 if %errorlevel% equ 0 (
     set COMPOSE_CMD=docker compose
@@ -113,111 +51,187 @@ if %errorlevel% equ 0 (
     )
 )
 
-echo  [INFO] Pulling Docker images (this may take a while)...
-call %COMPOSE_CMD% pull
+:CHECK_GIT
+where git >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [FAIL] Failed to pull Docker images.
-    pause
-    exit /b 1
+    echo  [WARN] Git not installed. Download: https://git-scm.com/download/win
+) else (
+    echo  [OK] Git is available
 )
 
-echo  [INFO] Starting containers...
+:SETUP_ENV
+echo.
+echo  [2] Setting up environment...
+
+if not exist ".env" (
+    if exist ".env.example" (
+        copy ".env.example" ".env" >nul
+        echo  [INFO] Created .env from .env.example
+        echo.
+        echo  Would you like to configure your domain now?
+        set /p SET_DOMAIN="  Configure domain? (y/N): "
+        if /i "!SET_DOMAIN!"=="y" (
+            set /p NEW_URL="  Panel URL (e.g. http://localhost or https://panel.example.com): "
+            if not "!NEW_URL!"=="" (
+                findstr /v /b "APP_URL" .env > .env.tmp
+                echo APP_URL=!NEW_URL!>> .env.tmp
+                move /y .env.tmp .env >nul
+                echo  [OK] APP_URL set to !NEW_URL!
+            )
+            set /p LE_MAIL="  Let's Encrypt email (for SSL, press Enter to skip): "
+            if not "!LE_MAIL!"=="" (
+                findstr /v /b "LE_EMAIL" .env > .env.tmp
+                echo LE_EMAIL=!LE_MAIL!>> .env.tmp
+                move /y .env.tmp .env >nul
+                echo  [OK] LE_EMAIL set
+            )
+        )
+        echo.
+        echo  [INFO] Generate database passwords? (y/N)
+        set /p GEN_PASS="  Generate: "
+        if /i "!GEN_PASS!"=="y" (
+            :: Generate random passwords using PowerShell
+            for /f %%p in ('powershell -command "[System.Convert]::ToBase64String((1..24|%%{Get-Random -Max 256}))" 2^>nul') do set DB_PASS=%%p
+            for /f %%p in ('powershell -command "[System.Convert]::ToBase64String((1..24|%%{Get-Random -Max 256}))" 2^>nul') do set ROOT_PASS=%%p
+            if not "!DB_PASS!"=="" (
+                findstr /v /b "DB_PASSWORD" .env > .env.tmp
+                echo DB_PASSWORD=!DB_PASS!>> .env.tmp
+                move /y .env.tmp .env >nul
+            )
+            if not "!ROOT_PASS!"=="" (
+                findstr /v /b "DB_ROOT_PASSWORD" .env > .env.tmp
+                echo DB_ROOT_PASSWORD=!ROOT_PASS!>> .env.tmp
+                move /y .env.tmp .env >nul
+            )
+            echo  [OK] Database passwords generated and saved to .env
+        )
+    ) else (
+        echo  [FAIL] .env.example not found.
+        pause
+        exit /b 1
+    )
+) else (
+    echo  [OK] .env found
+)
+
+:CREATE_DIRS
+if not exist "data\database" mkdir "data\database"
+if not exist "data\panel\var" mkdir "data\panel\var"
+if not exist "data\panel\logs" mkdir "data\panel\logs"
+if not exist "data\panel\nginx" mkdir "data\panel\nginx"
+if not exist "data\panel\certs" mkdir "data\panel\certs"
+if not exist "eggs" mkdir "eggs"
+if not exist "scripts" mkdir "scripts"
+echo  [OK] Data directories created
+
+:PULL_IMAGES
+echo.
+echo  [3] Pulling Docker images (this may take a while)...
+call %COMPOSE_CMD% pull
+if %errorlevel% neq 0 (
+    echo  [WARN] Image pull failed. Continuing anyway...
+) else (
+    echo  [OK] Images pulled
+)
+
+:START_CONTAINERS
+echo  [4] Starting containers...
 call %COMPOSE_CMD% up -d
 if %errorlevel% neq 0 (
     echo  [FAIL] Failed to start containers.
+    call %COMPOSE_CMD% logs panel
     pause
     exit /b 1
 )
-echo  [OK] All containers started
+echo  [OK] Containers started
 
-:: Wait for panel
-echo  [INFO] Waiting for panel to become ready...
+:WAIT_FOR_PANEL
+echo  [5] Waiting for panel to become ready...
 set WAIT_COUNT=0
-:WAIT_PANEL
+:WAIT_LOOP
 timeout /t 3 /nobreak >nul
 curl -s http://localhost/api/health >nul 2>&1
 if %errorlevel% neq 0 (
     set /a WAIT_COUNT+=1
-    if !WAIT_COUNT! lss 20 goto WAIT_PANEL
-    echo  [WARN] Panel may still be starting. Check: %COMPOSE_CMD% logs panel
+    if !WAIT_COUNT! lss 30 goto WAIT_LOOP
+    echo  [WARN] Panel not responding yet. Continuing anyway...
 ) else (
     echo  [OK] Panel is responding
 )
 
-echo.
-
-:: --- Step 4: Initialize Panel ---
-echo [4/7] Initializing panel...
+:INIT_PANEL
+echo  [6] Initializing panel...
 
 echo  [INFO] Generating application key...
 call %COMPOSE_CMD% exec -T panel php artisan key:generate --force
-echo  [OK] Application key generated
 
 echo  [INFO] Running database migrations...
 call %COMPOSE_CMD% exec -T panel php artisan migrate --seed --force
 if %errorlevel% neq 0 (
-    echo  [FAIL] Database migration failed.
+    echo  [FAIL] Database migration failed. Check: %COMPOSE_CMD% logs panel
     pause
     exit /b 1
 )
-echo  [OK] Database migrations complete
+echo  [OK] Database ready
 
+:CREATE_ADMIN
+echo.
+echo  [7] Creating admin user...
 echo.
 
-:: --- Step 5: Create Admin User ---
-echo [5/7] Creating admin user...
+:: Read APP_URL from .env for display
+for /f "tokens=1,* delims==" %%a in ('findstr /b "APP_URL" .env 2^>nul') do set PANEL_URL=%%b
+if "!PANEL_URL!"=="" set PANEL_URL=http://localhost
 
-set /p ADMIN_EMAIL="  Admin email: "
-set /p ADMIN_USER="  Admin username: "
+set /p ADMIN_EMAIL="  Email:      "
+set /p ADMIN_USER="  Username:   "
 set ADMIN_PASS=
-set /p ADMIN_PASS="  Admin password: "
-
+set /p ADMIN_PASS="  Password:   "
 if "!ADMIN_PASS!"=="" (
-    set ADMIN_PASS=admin123!
-    echo  [INFO] Using default password: admin123!
+    for /f %%p in ('powershell -command "-join((33..126|%%{[char]$_|Get-Random})[0..15])" 2^>nul') do set ADMIN_PASS=%%p
+    if "!ADMIN_PASS!"=="" set ADMIN_PASS=PteroAdmin2026!
+    echo  [INFO] Auto-generated password: !ADMIN_PASS!
 )
 
 call %COMPOSE_CMD% exec -T panel php artisan p:user:make --email="!ADMIN_EMAIL!" --username="!ADMIN_USER!" --name="Administrator" --password="!ADMIN_PASS!" --admin=1 2>nul
 
-echo  [OK] Admin user created
 echo.
 echo  ========================================
+echo    ADMIN CREDENTIALS - SAVE THESE
+echo  ========================================
+echo    URL:      !PANEL_URL!
 echo    Email:    !ADMIN_EMAIL!
 echo    Username: !ADMIN_USER!
 echo    Password: !ADMIN_PASS!
 echo  ========================================
-echo  SAVE THESE CREDENTIALS!
+
+:DOWNLOAD_EGGS
 echo.
-
-:: --- Step 6: Download Eggs ---
-echo [6/7] Downloading game server eggs...
-
+echo  [8] Downloading game server eggs...
 set EGGS_URL=https://raw.githubusercontent.com/pterodactyl/game-eggs/main
-
 call :DOWNLOAD_EGG "%EGGS_URL%/minecraft/java/paper/egg-paper.json" "eggs\egg-paper.json" "Paper"
 call :DOWNLOAD_EGG "%EGGS_URL%/minecraft/java/spigot/egg-spigot.json" "eggs\egg-spigot.json" "Spigot"
 call :DOWNLOAD_EGG "%EGGS_URL%/minecraft/java/fabric/egg-fabric.json" "eggs\egg-fabric.json" "Fabric"
 
+:SUMMARY
 echo.
-
-:: --- Step 7: Summary ---
-echo [7/7] Installation Summary
-echo ========================================
-echo  Panel:    http://localhost
-echo  Panel:    v1.12.2
-echo  Wings:    v1.12.1
-echo  Data:     %CD%\data
-echo  Eggs:     %CD%\eggs
-echo ========================================
+echo  ========================================
+echo    INSTALLATION COMPLETE
+echo  ========================================
+echo    Panel:  !PANEL_URL!
+echo    Panel:  v1.12.2
+echo    Wings:  v1.12.1
+echo    Data:   %CD%\data
+echo    Eggs:   %CD%\eggs
+echo  ========================================
 echo.
-echo  Next steps:
-echo    1. Run .\install-wings.bat to set up Wings daemon
-echo    2. Run .\update-all.bat to update everything
-echo    3. Check logs: %COMPOSE_CMD% logs panel
+echo  Next steps from the main menu:
+echo    Option 2: Install Wings daemon
+echo    Option 4: Configure custom domain
+echo    Option 5: Import more eggs
 echo.
-echo  Installation complete! Open http://localhost in your browser.
+echo  Open !PANEL_URL! in your browser.
 echo.
-
 pause
 exit /b 0
 
@@ -225,15 +239,11 @@ exit /b 0
 set "SRC=%~1"
 set "DST=%~2"
 set "NAME=%~3"
-if exist "%DST%" (
-    echo  [OK] %NAME% egg already exists
-    exit /b 0
-)
-echo  [DL] Downloading %NAME% egg...
+if exist "%DST%" ( exit /b 0 )
 curl -s -o "%DST%" "%SRC%" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo  [OK] %NAME% saved
+    echo  [OK] %NAME%
 ) else (
-    echo  [WARN] Failed to download %NAME%
+    echo  [WARN] %NAME% failed
 )
 exit /b 0
