@@ -1,0 +1,63 @@
+name: Deploy PteroWindows
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck PowerShell scripts
+        uses: azure/powershell@v1
+        with:
+          inlineScript: |
+            $scripts = Get-ChildItem -Recurse -Filter "*.ps1" | Select-Object -ExpandProperty FullName
+            Write-Host "Found $($scripts.Count) PowerShell scripts"
+            foreach ($s in $scripts) {
+                $content = Get-Content $s -Raw
+                $parseErrors = $null
+                [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$null, [ref]$parseErrors)
+                if ($parseErrors.Count -gt 0) {
+                    Write-Host "  [FAIL] $s" -ForegroundColor Red
+                    foreach ($e in $parseErrors) {
+                        Write-Host "    Line $($e.Extent.StartLine): $($e.Message)" -ForegroundColor Red
+                    }
+                    exit 1
+                }
+                Write-Host "  [OK] $s" -ForegroundColor Green
+            }
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config
+
+      - name: Validate .env.example keys
+        run: |
+          grep -oP '^[A-Z_]+(?==)' .env.example | sort > /tmp/env_keys
+          echo "Environment keys:"
+          cat /tmp/env_keys
+
+  release:
+    name: Create Release
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release archive
+        run: |
+          mkdir -p release
+          cp -r install-panel.ps1 install-wings.ps1 update-all.ps1 docker-compose.yml .env.example scripts eggs release/
+          cd release
+          7z a -tzip "../PteroWindows-${{ github.ref_name }}.zip" .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: PteroWindows-*.zip
+          generate_release_notes: true

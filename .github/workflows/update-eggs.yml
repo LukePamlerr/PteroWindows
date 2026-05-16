@@ -1,0 +1,48 @@
+name: Refresh Eggs Weekly
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  refresh-eggs:
+    name: Refresh Community Eggs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download latest eggs
+        run: |
+          mkdir -p eggs
+          EGGS=(
+            "Paper:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/paper/egg-paper.json"
+            "Spigot:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/spigot/egg-spigot.json"
+            "Fabric:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/fabric/egg-fabric.json"
+            "Forge:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/forge/egg-forge.json"
+            "CurseForge:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/curseforge/egg-curseforge-generic.json"
+            "BungeeCord:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/bungeecord/egg-bungeecord.json"
+            "Purpur:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/purpur/egg-purpur.json"
+            "Folia:https://raw.githubusercontent.com/pterodactyl/game-eggs/main/minecraft/java/folia/egg-folia.json"
+          )
+          for entry in "${EGGS[@]}"; do
+            name="${entry%%:*}"
+            url="${entry##*:}"
+            echo "Downloading $name..."
+            curl -sL "$url" -o "eggs/${name}.json" --fail
+          done
+          echo "Egg refresh complete"
+          ls -la eggs/
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "pterowindows-bot"
+          git config user.email "bot@example.com"
+          git add eggs/
+          git diff --staged --quiet || {
+            git commit -m "chore(eggs): refresh community egg definitions"
+            git push
+          }

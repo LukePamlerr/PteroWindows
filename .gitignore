@@ -1,0 +1,24 @@
+# PteroWindows .gitignore
+
+# Environment (contains secrets)
+.env
+
+# Docker persistent data
+data/
+!data/wings/.gitkeep
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+
+# Logs
+*.log
