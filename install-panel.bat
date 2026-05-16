@@ -16,7 +16,10 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  [WARN] Not running as Administrator. Some operations may fail.
     set /p CONTINUE="  Continue? (y/N): "
-    if /i "!CONTINUE!" neq "y" exit /b 1
+    if /i "!CONTINUE!" neq "y" (
+        pause
+        exit /b 1
+    )
 )
 
 :CHECK_DOCKER
@@ -91,8 +94,8 @@ if not exist ".env" (
         set /p GEN_PASS="  Generate: "
         if /i "!GEN_PASS!"=="y" (
             :: Generate random passwords using PowerShell
-            for /f %%p in ('powershell -command "[System.Convert]::ToBase64String((1..24|%%{Get-Random -Max 256}))" 2^>nul') do set DB_PASS=%%p
-            for /f %%p in ('powershell -command "[System.Convert]::ToBase64String((1..24|%%{Get-Random -Max 256}))" 2^>nul') do set ROOT_PASS=%%p
+            for /f %%p in ('powershell -command "[System.Convert]::ToBase64String((1..24^|%%{Get-Random -Max 256}))" 2^>nul') do set DB_PASS=%%p
+            for /f %%p in ('powershell -command "[System.Convert]::ToBase64String((1..24^|%%{Get-Random -Max 256}))" 2^>nul') do set ROOT_PASS=%%p
             if not "!DB_PASS!"=="" (
                 findstr /v /b "DB_PASSWORD" .env > .env.tmp
                 echo DB_PASSWORD=!DB_PASS!>> .env.tmp
@@ -188,7 +191,7 @@ set /p ADMIN_USER="  Username:   "
 set ADMIN_PASS=
 set /p ADMIN_PASS="  Password:   "
 if "!ADMIN_PASS!"=="" (
-    for /f %%p in ('powershell -command "-join((33..126|%%{[char]$_|Get-Random})[0..15])" 2^>nul') do set ADMIN_PASS=%%p
+    for /f %%p in ('powershell -command "-join((33..126^|%%{[char]$_^|Get-Random})[0..15])" 2^>nul') do set ADMIN_PASS=%%p
     if "!ADMIN_PASS!"=="" set ADMIN_PASS=PteroAdmin2026!
     echo  [INFO] Auto-generated password: !ADMIN_PASS!
 )

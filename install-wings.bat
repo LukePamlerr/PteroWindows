@@ -20,7 +20,10 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  [WARN] Administrator rights recommended for WSL operations.
     set /p CONTINUE="  Continue? (y/N): "
-    if /i "!CONTINUE!" neq "y" exit /b 1
+    if /i "!CONTINUE!" neq "y" (
+        pause
+        exit /b 1
+    )
 )
 
 :CHECK_WSL

@@ -82,7 +82,7 @@ if exist ".env" (
     echo    (no .env file found)
 )
 for /f "tokens=1,* delims==" %%a in ('findstr /b "LE_EMAIL" .env 2^>nul') do set CURRENT_LE=%%b
-echo  Current LE_EMAIL: %CURRENT_LE%
+echo  Current LE_EMAIL: !CURRENT_LE!
 echo.
 echo  Enter your domain (e.g. panel.yourdomain.com or localhost):
 set /p NEW_DOMAIN="  Domain: "
