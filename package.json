@@ -5,41 +5,25 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "pack": "electron-builder --dir"
+    "pack": "npx @electron/packager . PteroWindows --platform=win32 --arch=x64 --out=dist --overwrite --ignore='node_modules|dist|.git|.github' --executable-name='PteroWindows'",
+    "dist": "npm run pack && powershell Compress-Archive -Path dist/PteroWindows-win32-x64/* -DestinationPath dist/PteroWindows-portable.zip",
+    "build": "npm run dist"
   },
-  "build": {
-    "appId": "com.pterowindows.app",
-    "productName": "PteroWindows",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "main.js",
-      "preload.js",
-      "renderer/**/*",
-      "scripts/**/*",
-      "docker-compose.yml",
-      ".env.example",
-      "LICENSE",
-      "package.json"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": null
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "runAfterFinish": true
-    }
-  },
-  "keywords": ["pterodactyl", "panel", "wings", "games", "windows"],
+  "keywords": [
+    "pterodactyl",
+    "panel",
+    "wings",
+    "games",
+    "windows"
+  ],
   "author": "LukePamlerr",
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^42.1.0"
+    "@electron/packager": "^20.0.0",
+    "electron": "^42.1.0",
+    "electron-builder": "^26.8.1",
+    "electron-packager": "^17.1.2"
   },
   "repository": {
     "type": "git",

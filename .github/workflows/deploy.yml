@@ -77,9 +77,10 @@ jobs:
         run: npm ci
 
       - name: Build Electron app
-        run: npx electron-builder --win --config.extraMetadata.version=%GITHUB_REF_NAME:~1%
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx @electron/packager . PteroWindows --platform=win32 --arch=x64 --out=dist --overwrite --ignore='node_modules|dist|.git|.github' --executable-name='PteroWindows' --app-version=${{ github.ref_name }}
+
+      - name: Create portable zip
+        run: Compress-Archive -Path dist/PteroWindows-win32-x64/* -DestinationPath dist/PteroWindows-${{ github.ref_name }}-portable.zip
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -104,5 +105,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/**
+          files: dist/PteroWindows-*.zip
           generate_release_notes: true
