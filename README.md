@@ -126,20 +126,135 @@ Batch scripts (`*.bat`) remain as a fallback for headless/CI environments.
 
 ---
 
-## Custom Domain & SSL
+## Custom Domain & SSL — Complete Setup Guide
 
-Configure a custom domain from the **Domain Config** section:
+This guide walks you through making your Pterodactyl panel accessible via a real domain with SSL. You can also use the **Domain Config** section in the desktop app, which has built-in DNS, firewall, port, and SSL verification tools (no guesswork).
+
+### Step 1: Get a Domain Name
+
+You need a domain you control. Buy one from any registrar:
+
+- [Namecheap](https://namecheap.com)
+- [GoDaddy](https://godaddy.com)
+- [Cloudflare](https://cloudflare.com) (also provides DNS hosting)
+- [Google Domains](https://domains.google)
+
+A subdomain like `panel.yourdomain.com` is recommended.
+
+### Step 2: Point DNS to Your Machine
+
+In your DNS provider's dashboard, add an **A record**:
+
+| Field   | Value                          |
+|---------|--------------------------------|
+| Type    | `A`                            |
+| Name    | `panel`                        |
+| Value   | *(your Windows machine's public IP)* |
+| TTL     | `300` (5 min — or lowest available) |
+
+This creates `panel.yourdomain.com` → `your.public.ip`.
+
+**How to find your public IP:**
+- Use the **Detect my IP** button in the app's Domain Config section
+- Or visit [api.ipify.org](https://api.ipify.org) in a browser
+- Or run: `curl ifconfig.me` in a terminal
+
+**How to find your local IP** (needed for port forwarding):
+- Run `ipconfig` in Command Prompt
+- Look for "IPv4 Address" under your active network adapter (e.g. `192.168.1.100`)
+
+> DNS propagation can take **5–30 minutes** (sometimes hours). The app's **Check DNS** button confirms when it resolves to your machine.
+
+### Step 3: Verify DNS Resolution
+
+Use the **Check DNS** button in the app (Domain Config section) — it resolves the domain and compares it to your machine's local and public IPs.
+
+Or verify manually:
+```cmd
+nslookup panel.yourdomain.com
+```
+The response should show your public IP.
+
+### Step 4: Open Windows Firewall Ports
+
+Allow inbound connections on ports 80 (HTTP) and 443 (HTTPS):
+
+```cmd
+netsh advfirewall firewall add rule name="PteroWindows HTTP" dir=in action=allow protocol=TCP localport=80
+netsh advfirewall firewall add rule name="PteroWindows HTTPS" dir=in action=allow protocol=TCP localport=443
+```
+
+Use the **Check Firewall Rules** button in the app to confirm they're active.
+
+### Step 5: Forward Ports on Your Router
+
+If your Windows machine is behind a router (most home networks), log into your router's admin panel and forward ports:
+
+| External Port | Internal Port | Protocol | Internal IP         |
+|---------------|---------------|----------|---------------------|
+| 80            | 80            | TCP      | 192.168.1.x (your machine) |
+| 443           | 443           | TCP      | 192.168.1.x (your machine) |
+
+**How to find your router's admin page:** Usually `http://192.168.1.1` or `http://192.168.0.1`. Check your router's manual.
+
+### Step 6: Test Port Reachability
+
+Use the **Check Ports** button in the app — it tests whether ports 80 and 443 are reachable from the internet by attempting a TCP connection to your domain.
+
+Or test manually from an external network/phone:
+```
+https://www.yougetsignal.com/tools/open-ports/
+```
+
+> Both ports must be open for Let's Encrypt to issue an SSL certificate. Port 80 is used for the ACME HTTP challenge.
+
+### Step 7: Apply the Domain to PteroWindows
+
+In the app's **Domain Config** section:
 
 1. Enter your domain (e.g. `panel.yourdomain.com`)
-2. Optionally enter your email for Let's Encrypt SSL
-3. Click **Apply Domain** — the panel restarts with the new domain
+2. Enter your email for Let's Encrypt SSL notifications
+3. Click **Apply Domain**
 
-### Prerequisites for SSL
+The app will:
+- Update `APP_URL` in `.env` to `https://panel.yourdomain.com`
+- Set `LE_EMAIL` in `.env`
+- Restart the panel container with the new domain
+- Let's Encrypt will automatically detect ports 80/443 and provision an SSL certificate (this happens inside the nginx container via Certbot, no manual action needed)
 
-- Public domain (not `localhost` or bare IP)
-- DNS A record points to this Windows machine
-- Ports 80 and 443 open in Windows Firewall
-- Ports 80 and 443 forwarded from router (if behind NAT)
+To verify the changes took effect:
+```cmd
+findstr "APP_URL LE_EMAIL" .env
+```
+
+### Step 8: Verify SSL Certificate
+
+Use the **Check SSL Certificate** button in the app — it connects via HTTPS and validates the certificate, showing the issuer, subject, and expiration date.
+
+Or visit `https://panel.yourdomain.com` in a browser. A valid Let's Encrypt certificate should be active. If you see a security warning, wait a few minutes and restart the panel:
+```cmd
+docker compose restart panel
+```
+
+### Without SSL (Local / LAN Only)
+
+For local testing or LAN-only access, skip steps 4–6 and use:
+- `http://localhost` — panel on the same machine
+- `http://192.168.1.x` — panel accessible within your local network (set `APP_URL` to this)
+
+No email or SSL is needed. Ports 80 and 443 remain closed.
+
+### DNS Troubleshooting
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| Domain doesn't resolve | DNS not propagated | Wait 5–30 min, check with `nslookup` |
+| Wrong IP resolves | Old DNS cache | Run `ipconfig /flushdns`, wait for propagation |
+| Port check times out | Port not forwarded | Check router port forwarding rules |
+| Port check times out | Firewall blocking | Run the `netsh` commands above |
+| SSL not provisioning | Port 80 not open | Let's Encrypt needs port 80 for the HTTP challenge |
+| SSL not provisioning | Domain not pointing to this IP | Verify DNS A record |
+| Panel shows "ERR_SSL_UNRECOGNIZED_NAME_ALGORITHM" | Old browser | Update browser or use incognito mode |
 
 ---
 

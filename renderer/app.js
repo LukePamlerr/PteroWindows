@@ -219,6 +219,144 @@
     loadDashboard();
   });
 
+  // Detect IP button
+  document.getElementById('btnDetectIP').addEventListener('click', async function() {
+    var el = document.getElementById('dnsTargetIP');
+    el.textContent = 'Detecting...';
+    try {
+      var result = await api.getExternalIp();
+      if (result.success) {
+        el.textContent = result.ip;
+      } else {
+        el.textContent = '(detection failed - check manually)';
+      }
+    } catch {
+      el.textContent = '(detection failed)';
+    }
+  });
+
+  // Check DNS
+  document.getElementById('btnCheckDNS').addEventListener('click', async function() {
+    var domain = document.getElementById('domainInput').value.trim();
+    var resultEl = document.getElementById('dnsCheckResult');
+    if (!domain) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Enter a domain in step 7 first.';
+      return;
+    }
+    resultEl.className = 'check-result checked-info';
+    resultEl.innerHTML = '<span class="spinner"></span> Resolving DNS...';
+    try {
+      var dns = await api.resolveDns(domain);
+      if (!dns.success) {
+        resultEl.className = 'check-result checked-err';
+        resultEl.innerHTML = 'DNS resolution failed: ' + dns.error + '. Make sure the A record exists and has propagated (may take 5-30 minutes).';
+        return;
+      }
+      var extIp = await api.getExternalIp();
+      var html = '<strong>Resolved IPs:</strong> ' + dns.addresses.join(', ') + '<br>';
+      html += '<strong>Local IPs:</strong> ' + (dns.localIPs.length ? dns.localIPs.join(', ') : '(none detected)') + '<br>';
+      if (extIp.success) html += '<strong>Public IP:</strong> ' + extIp.ip + '<br>';
+      if (dns.matchesLocal) {
+        html += '<strong>Status:</strong> Domain resolves to this machine!';
+        resultEl.className = 'check-result checked-ok';
+      } else if (extIp.success && dns.addresses.includes(extIp.ip)) {
+        html += '<strong>Status:</strong> Domain resolves to your public IP. Ensure port forwarding is configured.';
+        resultEl.className = 'check-result checked-warn';
+      } else {
+        html += '<strong>Status:</strong> Domain does NOT point to this machine. Update your DNS A record to point to your public IP: ' + (extIp.success ? extIp.ip : '(unknown)');
+        resultEl.className = 'check-result checked-err';
+      }
+      resultEl.innerHTML = html;
+    } catch (err) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Check failed: ' + err.message;
+    }
+  });
+
+  // Check Firewall
+  document.getElementById('btnCheckFirewall').addEventListener('click', async function() {
+    var resultEl = document.getElementById('firewallCheckResult');
+    resultEl.className = 'check-result checked-info';
+    resultEl.innerHTML = '<span class="spinner"></span> Checking firewall rules...';
+    try {
+      var http = await api.checkFirewall(80);
+      var https = await api.checkFirewall(443);
+      var html = '';
+      if (http.hasRule) { html += 'Port 80 (HTTP): Rule found OK<br>'; } else { html += 'Port 80 (HTTP): No rule found - add one using the commands above<br>'; }
+      if (https.hasRule) { html += 'Port 443 (HTTPS): Rule found OK<br>'; } else { html += 'Port 443 (HTTPS): No rule found - add one using the commands above<br>'; }
+      resultEl.innerHTML = html;
+      resultEl.className = 'check-result ' + (http.hasRule && https.hasRule ? 'checked-ok' : 'checked-warn');
+    } catch (err) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Check failed: ' + err.message;
+    }
+  });
+
+  // Check Ports
+  document.getElementById('btnCheckPorts').addEventListener('click', async function() {
+    var domain = document.getElementById('domainInput').value.trim();
+    var resultEl = document.getElementById('portCheckResult');
+    if (!domain) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Enter a domain in step 7 first.';
+      return;
+    }
+    var cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+    resultEl.className = 'check-result checked-info';
+    resultEl.innerHTML = '<span class="spinner"></span> Testing port reachability...';
+    try {
+      var http = await api.checkPort(cleanDomain, 80);
+      var https = await api.checkPort(cleanDomain, 443);
+      var html = 'Testing ' + cleanDomain + '...<br>';
+      html += 'Port 80 (HTTP): ' + (http.open ? 'OPEN' : 'CLOSED / TIMEOUT') + '<br>';
+      html += 'Port 443 (HTTPS): ' + (https.open ? 'OPEN' : 'CLOSED / TIMEOUT') + '<br>';
+      if (http.open || https.open) {
+        html += 'Ports are reachable from the internet!';
+        resultEl.className = 'check-result checked-ok';
+      } else {
+        html += 'Neither port is reachable. Check firewall, port forwarding, and that the panel is running.';
+        resultEl.className = 'check-result checked-err';
+      }
+      resultEl.innerHTML = html;
+    } catch (err) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Check failed: ' + err.message;
+    }
+  });
+
+  // Check SSL
+  document.getElementById('btnCheckSSL').addEventListener('click', async function() {
+    var domain = document.getElementById('domainInput').value.trim();
+    var resultEl = document.getElementById('sslCheckResult');
+    if (!domain) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Enter a domain in step 7 first.';
+      return;
+    }
+    var cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+    resultEl.className = 'check-result checked-info';
+    resultEl.innerHTML = '<span class="spinner"></span> Checking SSL certificate...';
+    try {
+      var ssl = await api.checkSsl(cleanDomain);
+      if (!ssl.success) {
+        resultEl.className = 'check-result checked-err';
+        resultEl.innerHTML = 'SSL check failed: ' + (ssl.error || 'Could not connect. The panel may not be running on HTTPS yet.');
+        return;
+      }
+      if (ssl.valid) {
+        resultEl.innerHTML = 'Certificate is valid!<br>Subject: ' + (ssl.subject || 'N/A') + '<br>Issuer: ' + (ssl.issuer || 'N/A') + '<br>Expires: ' + ssl.validTo + ' (' + ssl.daysRemaining + ' days remaining)';
+        resultEl.className = 'check-result checked-ok';
+      } else {
+        resultEl.innerHTML = 'Certificate issue: ' + (ssl.reason || 'Not valid') + '<br>Subject: ' + (ssl.subject || 'N/A') + '<br>Issuer: ' + (ssl.issuer || 'N/A');
+        resultEl.className = 'check-result checked-warn';
+      }
+    } catch (err) {
+      resultEl.className = 'check-result checked-err';
+      resultEl.innerHTML = 'Check failed: ' + err.message;
+    }
+  });
+
   // Download eggs
   document.getElementById('btnDownloadEggs').addEventListener('click', async function() {
     if (busy) return;

@@ -3,6 +3,9 @@ const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const dns = require('dns');
+const net = require('net');
+const os = require('os');
 
 let mainWindow;
 
@@ -753,6 +756,94 @@ function setupIPC() {
       const fullPath = path.join(APP_DIR, filePath);
       return { exists: fs.existsSync(fullPath) };
     } catch { return { exists: false }; }
+  });
+
+  ipcMain.handle('dns:resolve', async (_, domain) => {
+    try {
+      const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+      const addresses = await new Promise((resolve, reject) => {
+        dns.resolve4(cleanDomain, (err, addresses) => {
+          if (err) reject(err); else resolve(addresses);
+        });
+      });
+      const localIPs = [];
+      const ifaces = os.networkInterfaces();
+      for (const name of Object.keys(ifaces)) {
+        for (const iface of ifaces[name]) {
+          if (iface.family === 'IPv4' && !iface.internal) localIPs.push(iface.address);
+        }
+      }
+      const matchesLocal = addresses.some(addr => localIPs.includes(addr));
+      return { success: true, domain: cleanDomain, addresses, localIPs, matchesLocal };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('network:external-ip', async () => {
+    try {
+      const ip = await new Promise((resolve, reject) => {
+        https.get('https://api.ipify.org?format=json', { timeout: 10000 }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => { try { resolve(JSON.parse(data).ip); } catch { reject(new Error('Parse failed')); } });
+        }).on('error', reject);
+      });
+      return { success: true, ip };
+    } catch { return { success: false, error: 'Could not determine external IP' }; }
+  });
+
+  ipcMain.handle('port:check', async (_, host, port) => {
+    try {
+      const isOpen = await new Promise((resolve) => {
+        const socket = new net.Socket();
+        socket.setTimeout(5000);
+        socket.on('connect', () => { socket.destroy(); resolve(true); });
+        socket.on('error', () => resolve(false));
+        socket.on('timeout', () => { socket.destroy(); resolve(false); });
+        socket.connect(port, host);
+      });
+      return { success: true, host, port, open: isOpen };
+    } catch { return { success: false, error: 'Check failed' }; }
+  });
+
+  ipcMain.handle('firewall:check', async (_, port) => {
+    try {
+      const rules = await execPromise(`netsh advfirewall firewall show rule name=all dir=in verbose | findstr /i "${port}"`);
+      const hasRule = rules.length > 0;
+      return { success: true, port, hasRule };
+    } catch { return { success: true, port, hasRule: false }; }
+  });
+
+  ipcMain.handle('ssl:check', async (_, domain) => {
+    try {
+      const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+      const certInfo = await new Promise((resolve, reject) => {
+        const req = https.get(`https://${cleanDomain}`, { timeout: 15000, rejectUnauthorized: false }, (res) => {
+          const cert = res.socket.getPeerCertificate();
+          if (!cert || Object.keys(cert).length === 0) {
+            resolve({ valid: false, reason: 'No certificate presented' });
+            return;
+          }
+          const now = new Date();
+          const valid = new Date(cert.valid_to) > now && new Date(cert.valid_from) < now;
+          resolve({
+            valid,
+            subject: cert.subject ? cert.subject.CN : '',
+            issuer: cert.issuer ? cert.issuer.O : '',
+            validFrom: cert.valid_from,
+            validTo: cert.valid_to,
+            daysRemaining: Math.floor((new Date(cert.valid_to) - now) / (1000 * 60 * 60 * 24)),
+          });
+          res.resume();
+        });
+        req.on('error', (err) => resolve({ valid: false, reason: err.message }));
+        req.end();
+      });
+      return { success: true, ...certInfo };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   });
 
 }

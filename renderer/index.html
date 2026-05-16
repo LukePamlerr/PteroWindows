@@ -159,21 +159,99 @@
     <!-- DOMAIN CONFIG -->
     <section id="section-domain" class="section">
       <h1>Configure Custom Domain</h1>
+
       <div class="card">
-        <p class="desc">Set or change the panel's domain URL and optional Let's Encrypt email.</p>
-        <div class="current-env" id="currentDomainDisplay">
-          <div class="env-row"><span class="env-key">APP_URL</span><span class="env-val" id="currentAppUrl">-</span></div>
-          <div class="env-row"><span class="env-key">LE_EMAIL</span><span class="env-val" id="currentLeEmail">-</span></div>
+        <div class="card-title">Setup Guide</div>
+        <div class="guide-steps">
+          <div class="guide-step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <div class="step-title">Own a domain name</div>
+              <div class="step-desc">You need a domain you control (e.g. <strong>panel.yourdomain.com</strong>).<br>Buy one from <a href="#" onclick="require('electron').shell.openExternal('https://namecheap.com')">Namecheap</a>, <a href="#" onclick="require('electron').shell.openExternal('https://godaddy.com')">GoDaddy</a>, <a href="#" onclick="require('electron').shell.openExternal('https://cloudflare.com')">Cloudflare</a>, or any registrar.</div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <div class="step-title">Point DNS to your machine</div>
+              <div class="step-desc">Add an <strong>A record</strong> in your DNS provider's dashboard:</div>
+              <div class="dns-example">
+                <div class="dns-row"><span class="dns-field">Type:</span> <span class="dns-val">A</span></div>
+                <div class="dns-row"><span class="dns-field">Name:</span> <span class="dns-val">panel</span></div>
+                <div class="dns-row"><span class="dns-field">Value:</span> <span class="dns-val" id="dnsTargetIP">(your public IP)</span></div>
+                <div class="dns-row"><span class="dns-field">TTL:</span> <span class="dns-val">300 (5 minutes)</span></div>
+              </div>
+              <div class="step-desc" style="margin-top:8px;">This creates <strong>panel.yourdomain.com</strong> pointing to your Windows machine's public IP. <button class="btn btn-sm" id="btnDetectIP">Detect my IP</button></div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <div class="step-title">Verify DNS propagation</div>
+              <div class="step-desc">Enter your domain below and click <strong>Check DNS</strong> to confirm it resolves to your machine.</div>
+              <div id="dnsCheckResult" class="check-result"></div>
+              <button class="btn btn-sm" id="btnCheckDNS">Check DNS</button>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <div class="step-title">Open firewall ports</div>
+              <div class="step-desc">Windows Firewall must allow inbound connections on ports <strong>80 (HTTP)</strong> and <strong>443 (HTTPS)</strong>.</div>
+              <div id="firewallCheckResult" class="check-result"></div>
+              <div class="code-block">netsh advfirewall firewall add rule name="PteroWindows HTTP" dir=in action=allow protocol=TCP localport=80<br>netsh advfirewall firewall add rule name="PteroWindows HTTPS" dir=in action=allow protocol=TCP localport=443</div>
+              <button class="btn btn-sm" id="btnCheckFirewall">Check Firewall Rules</button>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <div class="step-title">Forward ports from your router (if needed)</div>
+              <div class="step-desc">If your Windows machine is behind a router, forward ports <strong>80</strong> and <strong>443</strong> TCP to its local IP (e.g. 192.168.1.100).</div>
+              <div class="warn-box" style="margin:8px 0;">
+                <strong>Finding your local IP:</strong> Run <code>ipconfig</code> in Command Prompt — look for "IPv4 Address" under your active adapter.
+              </div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">6</div>
+            <div class="step-body">
+              <div class="step-title">Test port reachability</div>
+              <div class="step-desc">Verify ports 80 and 443 are reachable from the internet.</div>
+              <div id="portCheckResult" class="check-result"></div>
+              <button class="btn btn-sm" id="btnCheckPorts">Check Ports</button>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">7</div>
+            <div class="step-body">
+              <div class="step-title">Apply domain to PteroWindows</div>
+              <div class="step-desc">Enter your domain and optionally your email for Let's Encrypt SSL below, then click <strong>Apply Domain</strong>. The panel will restart with the new domain.</div>
+              <div class="current-env" id="currentDomainDisplay" style="margin-top:8px;">
+                <div class="env-row"><span class="env-key">APP_URL</span><span class="env-val" id="currentAppUrl">-</span></div>
+                <div class="env-row"><span class="env-key">LE_EMAIL</span><span class="env-val" id="currentLeEmail">-</span></div>
+              </div>
+              <div class="form-group" style="margin-top:12px;">
+                <label>Domain</label>
+                <input type="text" id="domainInput" placeholder="e.g. panel.yourdomain.com" class="input">
+              </div>
+              <div class="form-group">
+                <label>Let's Encrypt Email (optional — required for SSL)</label>
+                <input type="email" id="domainEmail" placeholder="admin@example.com" class="input">
+              </div>
+              <button class="btn btn-primary" id="btnConfigureDomain">Apply Domain</button>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="step-num">8</div>
+            <div class="step-body">
+              <div class="step-title">Verify SSL certificate</div>
+              <div class="step-desc">After the panel restarts, verify that the SSL certificate was provisioned correctly. Let's Encrypt auto-provisions when it detects ports 80 and 443 are open.</div>
+              <div id="sslCheckResult" class="check-result"></div>
+              <button class="btn btn-sm" id="btnCheckSSL">Check SSL Certificate</button>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>New Domain</label>
-          <input type="text" id="domainInput" placeholder="e.g. panel.example.com" class="input">
-        </div>
-        <div class="form-group">
-          <label>Let's Encrypt Email (optional)</label>
-          <input type="email" id="domainEmail" placeholder="admin@example.com" class="input">
-        </div>
-        <button class="btn btn-primary" id="btnConfigureDomain">Apply Domain</button>
       </div>
     </section>
 

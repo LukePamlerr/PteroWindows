@@ -25,4 +25,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLogs: (source) => ipcRenderer.invoke('logs:get', source),
 
   checkFile: (filePath) => ipcRenderer.invoke('file:check', filePath),
+
+  resolveDns: (domain) => ipcRenderer.invoke('dns:resolve', domain),
+  getExternalIp: () => ipcRenderer.invoke('network:external-ip'),
+  checkPort: (host, port) => ipcRenderer.invoke('port:check', host, port),
+  checkFirewall: (port) => ipcRenderer.invoke('firewall:check', port),
+  checkSsl: (domain) => ipcRenderer.invoke('ssl:check', domain),
 });
