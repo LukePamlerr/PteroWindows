@@ -3,7 +3,14 @@
 > **Pterodactyl Game Panel for Windows** - v1.12.2 / May 15, 2026
 
 [![Validate](https://github.com/LukePamlerr/PteroWindows/actions/workflows/deploy.yml/badge.svg)](https://github.com/LukePamlerr/PteroWindows/actions/workflows/deploy.yml)
+[![Release](https://img.shields.io/github/v/release/LukePamlerr/PteroWindows)](https://github.com/LukePamlerr/PteroWindows/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+---
+
+## Download
+
+[**Download latest release**](https://github.com/LukePamlerr/PteroWindows/releases) — includes all scripts, eggs, and config files in a single `.zip` archive. No compilation or build step needed.
 
 ---
 
