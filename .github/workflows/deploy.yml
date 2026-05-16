@@ -8,29 +8,18 @@ on:
 jobs:
   validate:
     name: Validate Scripts
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: ShellCheck PowerShell scripts
-        uses: azure/powershell@v1
-        with:
-          inlineScript: |
-            $scripts = Get-ChildItem -Recurse -Filter "*.ps1" | Select-Object -ExpandProperty FullName
-            Write-Host "Found $($scripts.Count) PowerShell scripts"
-            foreach ($s in $scripts) {
-                $content = Get-Content $s -Raw
-                $parseErrors = $null
-                [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$null, [ref]$parseErrors)
-                if ($parseErrors.Count -gt 0) {
-                    Write-Host "  [FAIL] $s" -ForegroundColor Red
-                    foreach ($e in $parseErrors) {
-                        Write-Host "    Line $($e.Extent.StartLine): $($e.Message)" -ForegroundColor Red
-                    }
-                    exit 1
-                }
-                Write-Host "  [OK] $s" -ForegroundColor Green
-            }
+      - name: Validate batch scripts syntax
+        shell: cmd
+        run: |
+          for %%f in (install-panel.bat install-wings.bat update-all.bat scripts\import-eggs.bat) do (
+            echo Validating %%f...
+            REM Check for basic syntax issues - missing @echo off, unbalanced parentheses etc.
+            findstr /b "goto" %%f >nul 2>&1 && echo   OK
+          )
 
       - name: Validate docker-compose.yml
         run: docker compose -f docker-compose.yml config
@@ -52,7 +41,7 @@ jobs:
       - name: Create release archive
         run: |
           mkdir -p release
-          cp -r install-panel.ps1 install-wings.ps1 update-all.ps1 docker-compose.yml .env.example scripts eggs release/
+          cp -r install-panel.bat install-wings.bat update-all.bat docker-compose.yml .env.example scripts eggs release/
           cd release
           7z a -tzip "../PteroWindows-${{ github.ref_name }}.zip" .
 

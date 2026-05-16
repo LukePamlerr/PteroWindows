@@ -2,7 +2,7 @@
 
 > **Pterodactyl Game Panel for Windows** - v1.12.2 / May 15, 2026
 
-[![Validate](https://github.com/your-org/PteroWindows/actions/workflows/deploy.yml/badge.svg)](https://github.com/your-org/PteroWindows/actions/workflows/deploy.yml)
+[![Validate](https://github.com/LukePamlerr/PteroWindows/actions/workflows/deploy.yml/badge.svg)](https://github.com/LukePamlerr/PteroWindows/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -11,7 +11,7 @@
 
 PteroWindows deploys the [Pterodactyl Panel](https://github.com/pterodactyl/panel) (v1.12.2) on **Windows** using Docker Desktop. Pterodactyl is a free, open-source game server management panel that lets you host game servers (Minecraft, ARK, CS2, Valheim, etc.) in isolated Docker containers through a beautiful web UI.
 
-Pterodactyl is Linux-native. PteroWindows is the only way to run it on Windows with full functionality.
+Pterodactyl is Linux-native. PteroWindows is the only way to run it on Windows with full functionality. All scripts are Windows **batch (.bat)** files -- no PowerShell required.
 
 ---
 
@@ -45,26 +45,28 @@ Pterodactyl is Linux-native. PteroWindows is the only way to run it on Windows w
 | Requirement | Version | Download |
 |-------------|---------|----------|
 | Windows 10/11 | 22H2+ (Pro/Enterprise) | - |
-| WSL2 | Any | `wsl --install` (Admin PowerShell) |
+| WSL2 | Any | Run `wsl --install` as Admin in CMD |
 | Docker Desktop | 4.x+ | [docker.com](https://docs.docker.com/desktop/install/windows-install/) |
 | Git | 2.x+ | [git-scm.com](https://git-scm.com/download/win) |
 
+Run everything from **Command Prompt (CMD)** -- NOT PowerShell.
+
 ### Installation
 
-```powershell
-# 1. Clone the repository
-git clone https://github.com/your-org/PteroWindows.git
+```batch
+:: 1. Clone the repository
+git clone https://github.com/LukePamlerr/PteroWindows.git
 cd PteroWindows
 
-# 2. Configure your environment
+:: 2. Configure your environment
 copy .env.example .env
-# Edit .env - set your domain, passwords, timezone
+:: Edit .env - set your domain, passwords, timezone
 
-# 3. Install the Panel (Docker)
-.\install-panel.ps1
+:: 3. Install the Panel (Docker)
+install-panel.bat
 
-# 4. Install Wings daemon (WSL2)
-.\install-wings.ps1
+:: 4. Install Wings daemon (WSL2)
+install-wings.bat
 ```
 
 That's it. Open **http://localhost** in your browser.
@@ -75,10 +77,10 @@ That's it. Open **http://localhost** in your browser.
 
 | Script | Purpose |
 |--------|---------|
-| `install-panel.ps1` | Full panel installation (Docker containers, DB, admin user, eggs) |
-| `install-wings.ps1` | Wings daemon setup in WSL2 (Docker Engine, Wings binary, service) |
-| `update-all.ps1` | Updates panel, wings, and eggs to latest versions |
-| `scripts/Import-PteroEggs.ps1` | Download/import game server eggs from community repos |
+| `install-panel.bat` | Full panel installation (Docker containers, DB, admin user, eggs) |
+| `install-wings.bat` | Wings daemon setup in WSL2 (Docker Engine, Wings binary, service) |
+| `update-all.bat` | Updates panel, wings, and eggs to latest versions |
+| `scripts/import-eggs.bat` | Download/import game server eggs from community repos |
 | `docker-compose.yml` | Docker Compose stack (panel, database, cache) |
 | `.env.example` | Environment configuration template |
 
@@ -88,8 +90,8 @@ That's it. Open **http://localhost** in your browser.
 
 ### 1. Panel Installation
 
-```powershell
-.\install-panel.ps1 -AutoYes
+```batch
+install-panel.bat
 ```
 
 The script will:
@@ -99,15 +101,15 @@ The script will:
 3. **Start Docker stack** - Pulls and runs panel, MariaDB, Redis
 4. **Initialize panel** - Generates app key, runs migrations
 5. **Create admin user** - Prompts for email/username/password
-6. **Download eggs** - Fetches game server egg definitions
+6. **Download eggs** - Fetches game server egg definitions from official repos
 7. **Print summary** - Login URL and credentials
 
 ### 2. Wings Setup (Daemon)
 
 Wings runs inside WSL2 because it requires Linux Docker Engine (not Docker Desktop).
 
-```powershell
-.\install-wings.ps1
+```batch
+install-wings.bat
 ```
 
 After Wings installs:
@@ -121,8 +123,8 @@ After Wings installs:
 4. After creation, click the **Configuration** tab
 5. Copy the YAML config and save it to `data/wings/config.yml`
 6. Restart Wings in WSL:
-   ```powershell
-   wsl -d Ubuntu -- sudo systemctl restart wings
+   ```batch
+   wsl -d Ubuntu-22.04 -- sudo systemctl restart wings
    ```
 
 ### 3. Adding Game Servers
@@ -163,7 +165,7 @@ data/
 
 ## Eggs
 
-Eggs in the `eggs/` directory:
+Eggs shipped in the `eggs/` directory:
 
 | Egg | Game/Use | Source |
 |-----|----------|--------|
@@ -171,7 +173,7 @@ Eggs in the `eggs/` directory:
 | `egg-spigot.json` | Minecraft Spigot | [game-eggs](https://github.com/pterodactyl/game-eggs) |
 | `egg-fabric.json` | Minecraft Fabric | [game-eggs](https://github.com/pterodactyl/game-eggs) |
 
-Run `.\scripts\Import-PteroEggs.ps1` to download all community eggs.
+Run `scripts\import-eggs.bat` to download all community eggs (includes Forge, BungeeCord, Purpur, Folia, NeoForge, Gitea, Grafana, and more).
 
 ### Egg Sources
 
@@ -184,13 +186,13 @@ All eggs are sourced from the official Pterodactyl repositories:
 
 ## Updates
 
-```powershell
-.\update-all.ps1
+```batch
+update-all.bat
 ```
 
 This pulls the latest panel Docker image, runs migrations, downloads the latest Wings binary into WSL, and refreshes eggs.
 
-The GitHub Actions workflow also refreshes eggs weekly.
+The GitHub Actions workflow (`update-eggs.yml`) also refreshes eggs weekly.
 
 ---
 
@@ -211,25 +213,13 @@ MAIL_DRIVER=smtp                      # Mail driver
 MAIL_HOST=mail.example.com            # SMTP host
 ```
 
-### CLI Parameters
-
-| Script | Parameter | Effect |
-|--------|-----------|--------|
-| `install-panel.ps1` | `-SkipChecks` | Skip prerequisite verification |
-| `install-panel.ps1` | `-AutoYes` | Non-interactive mode |
-| `install-wings.ps1` | `-WslDistro Ubuntu-24.04` | Use specific WSL distro |
-| `install-wings.ps1` | `-AutoYes` | Non-interactive mode |
-| `update-all.ps1` | `-SkipPanel` | Skip panel update |
-| `update-all.ps1` | `-SkipWings` | Skip wings update |
-| `update-all.ps1` | `-SkipEggs` | Skip egg refresh |
-
 ---
 
 ## Troubleshooting
 
 ### Panel won't start
 
-```powershell
+```batch
 docker compose logs panel
 ```
 
@@ -237,7 +227,7 @@ docker compose logs panel
 
 Wait for MariaDB to initialize (30-60s on first run):
 
-```powershell
+```batch
 docker compose logs database
 ```
 
@@ -258,10 +248,10 @@ Then access `http://localhost:8080`.
 
 ### Reset everything
 
-```powershell
+```batch
 docker compose down -v
-Remove-Item -Recurse -Force data
-.\install-panel.ps1
+rmdir /s /q data
+install-panel.bat
 ```
 
 ---
@@ -284,6 +274,31 @@ For production use:
 | PteroWindows | Panel | Wings | Docker Image |
 |-------------|-------|-------|-------------|
 | 1.0.0 | v1.12.2 | v1.12.1 | `ghcr.io/pterodactyl/panel:latest` |
+
+---
+
+## File Manifest
+
+```
+PteroWindows/
+├── install-panel.bat         # Main panel installer (CMD batch)
+├── install-wings.bat         # Wings daemon installer (CMD batch)
+├── update-all.bat            # Auto-updater (CMD batch)
+├── docker-compose.yml        # Docker stack (panel + database + cache)
+├── .env.example              # Environment configuration template
+├── .gitignore
+├── LICENSE                   # MIT License
+├── README.md                 # This file
+├── eggs/
+│   ├── egg-paper.json        # Minecraft Paper server egg
+│   ├── egg-spigot.json       # Minecraft Spigot server egg
+│   └── egg-fabric.json       # Minecraft Fabric server egg
+├── scripts/
+│   └── import-eggs.bat       # Egg downloader/importer (CMD batch)
+└── .github/workflows/
+    ├── deploy.yml            # CI validation + release builder
+    └── update-eggs.yml       # Weekly egg refresh
+```
 
 ---
 
