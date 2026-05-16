@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
+<title>PteroWindows</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="logo">
+      <span class="logo-icon">&#9670;</span>
+      <span class="logo-text">PteroWindows</span>
+      <span class="logo-ver">v2.0.0</span>
+    </div>
+    <nav id="nav">
+      <a class="nav-item active" data-section="dashboard" title="Dashboard">
+        <span class="nav-icon">&#9733;</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item" data-section="install-panel" title="Install Panel">
+        <span class="nav-icon">&#9660;</span>
+        <span class="nav-label">Install Panel</span>
+      </a>
+      <a class="nav-item" data-section="install-wings" title="Install Wings">
+        <span class="nav-icon">&#9881;</span>
+        <span class="nav-label">Install Wings</span>
+      </a>
+      <a class="nav-item" data-section="update" title="Update Everything">
+        <span class="nav-icon">&#8635;</span>
+        <span class="nav-label">Update</span>
+      </a>
+      <a class="nav-item" data-section="domain" title="Configure Domain">
+        <span class="nav-icon">&#127758;</span>
+        <span class="nav-label">Domain Config</span>
+      </a>
+      <a class="nav-item" data-section="eggs" title="Download Eggs">
+        <span class="nav-icon">&#127859;</span>
+        <span class="nav-label">Eggs</span>
+      </a>
+      <a class="nav-item" data-section="status" title="Panel Status">
+        <span class="nav-icon">&#9632;</span>
+        <span class="nav-label">Status</span>
+      </a>
+      <a class="nav-item" data-section="restart" title="Restart Services">
+        <span class="nav-icon">&#9654;</span>
+        <span class="nav-label">Restart</span>
+      </a>
+      <a class="nav-item" data-section="stop" title="Stop Services">
+        <span class="nav-icon">&#9632;</span>
+        <span class="nav-label">Stop</span>
+      </a>
+      <a class="nav-item" data-section="logs" title="View Logs">
+        <span class="nav-icon">&#9776;</span>
+        <span class="nav-label">Logs</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="docker-indicator" id="dockerIndicator">
+        <span class="indicator-dot" id="dockerDot"></span>
+        <span id="dockerStatus">Checking...</span>
+      </div>
+    </div>
+  </aside>
+
+  <main id="content">
+
+    <!-- DASHBOARD -->
+    <section id="section-dashboard" class="section active">
+      <h1>Dashboard</h1>
+      <div class="dashboard-grid">
+        <div class="card" id="dashDocker">
+          <div class="card-title">Docker</div>
+          <div class="card-value" id="dashDockerValue">...</div>
+        </div>
+        <div class="card" id="dashPanel">
+          <div class="card-title">Panel</div>
+          <div class="card-value" id="dashPanelValue">...</div>
+        </div>
+        <div class="card" id="dashWings">
+          <div class="card-title">Wings</div>
+          <div class="card-value" id="dashWingsValue">...</div>
+        </div>
+        <div class="card" id="dashEggs">
+          <div class="card-title">Eggs</div>
+          <div class="card-value" id="dashEggsValue">...</div>
+        </div>
+      </div>
+      <div class="card env-card">
+        <div class="card-title">Environment</div>
+        <pre id="dashEnv" class="env-display">Loading...</pre>
+      </div>
+    </section>
+
+    <!-- INSTALL PANEL -->
+    <section id="section-install-panel" class="section">
+      <h1>Install Panel</h1>
+      <div class="card">
+        <p class="desc">Deploy the Pterodactyl Panel (v1.12.2) using Docker containers.</p>
+        <div class="form-group">
+          <label>Panel Domain (optional)</label>
+          <input type="text" id="panelDomain" placeholder="e.g. panel.example.com or localhost" class="input">
+        </div>
+        <div class="form-group">
+          <label>Let's Encrypt Email (optional)</label>
+          <input type="email" id="panelEmail" placeholder="admin@example.com" class="input">
+        </div>
+        <div class="form-group">
+          <label>Admin Email</label>
+          <input type="email" id="adminEmail" placeholder="admin@example.com" class="input">
+        </div>
+        <div class="form-group">
+          <label>Admin Username</label>
+          <input type="text" id="adminUser" placeholder="admin" class="input">
+        </div>
+        <div class="form-group">
+          <label>Admin Password (leave blank to auto-generate)</label>
+          <input type="text" id="adminPass" placeholder="Auto-generate" class="input">
+        </div>
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="genDbPass" checked>
+            <span>Generate database passwords</span>
+          </label>
+        </div>
+        <button class="btn btn-primary" id="btnInstallPanel">Install Panel</button>
+      </div>
+    </section>
+
+    <!-- INSTALL WINGS -->
+    <section id="section-install-wings" class="section">
+      <h1>Install Wings Daemon</h1>
+      <div class="card">
+        <p class="desc">Install the Wings game server daemon via WSL2 with Ubuntu.</p>
+        <div class="warn-box">
+          <strong>Requirements:</strong> WSL2 enabled, roughly 2GB of free disk space.
+          Administrator rights recommended.
+        </div>
+        <button class="btn btn-primary" id="btnInstallWings">Install Wings</button>
+      </div>
+    </section>
+
+    <!-- UPDATE -->
+    <section id="section-update" class="section">
+      <h1>Update Everything</h1>
+      <div class="card">
+        <p class="desc">Update the Panel image, Wings daemon binary, and game server eggs.</p>
+        <div class="update-list">
+          <div class="update-item"><span class="update-label">Panel</span><span class="update-desc">Pull latest image, recreate container, run migrations</span></div>
+          <div class="update-item"><span class="update-label">Wings</span><span class="update-desc">Replace binary in WSL, restart daemon</span></div>
+          <div class="update-item"><span class="update-label">Eggs</span><span class="update-desc">Download fresh egg JSON files from official repos</span></div>
+        </div>
+        <button class="btn btn-primary" id="btnUpdateAll">Update Everything</button>
+      </div>
+    </section>
+
+    <!-- DOMAIN CONFIG -->
+    <section id="section-domain" class="section">
+      <h1>Configure Custom Domain</h1>
+      <div class="card">
+        <p class="desc">Set or change the panel's domain URL and optional Let's Encrypt email.</p>
+        <div class="current-env" id="currentDomainDisplay">
+          <div class="env-row"><span class="env-key">APP_URL</span><span class="env-val" id="currentAppUrl">-</span></div>
+          <div class="env-row"><span class="env-key">LE_EMAIL</span><span class="env-val" id="currentLeEmail">-</span></div>
+        </div>
+        <div class="form-group">
+          <label>New Domain</label>
+          <input type="text" id="domainInput" placeholder="e.g. panel.example.com" class="input">
+        </div>
+        <div class="form-group">
+          <label>Let's Encrypt Email (optional)</label>
+          <input type="email" id="domainEmail" placeholder="admin@example.com" class="input">
+        </div>
+        <button class="btn btn-primary" id="btnConfigureDomain">Apply Domain</button>
+      </div>
+    </section>
+
+    <!-- EGGS -->
+    <section id="section-eggs" class="section">
+      <h1>Download / Import Eggs</h1>
+      <div class="card">
+        <p class="desc">Download game server eggs from the official Pterodactyl repos. 18 eggs available.</p>
+        <div class="egg-list" id="eggList">
+          <div class="egg-category">
+            <div class="egg-cat-title">Minecraft Java (10 eggs)</div>
+            <div class="egg-names">Paper, Spigot, Fabric, Forge, CurseForge, BungeeCord, Purpur, Folia, NeoForge, Magma</div>
+          </div>
+          <div class="egg-category">
+            <div class="egg-cat-title">Applications (8 eggs)</div>
+            <div class="egg-names">Gitea, UptimeKuma, Grafana, CodeServer, Lavalink, Meilisearch, Minio, Elasticsearch</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnDownloadEggs">Download Eggs</button>
+      </div>
+    </section>
+
+    <!-- STATUS -->
+    <section id="section-status" class="section">
+      <h1>Panel Status</h1>
+      <button class="btn btn-primary" id="btnGetStatus">Refresh Status</button>
+      <div class="status-grid" id="statusGrid"></div>
+      <div class="card env-card">
+        <div class="card-title">.env Configuration</div>
+        <pre id="statusEnv" class="env-display">Run status check to load...</pre>
+      </div>
+    </section>
+
+    <!-- RESTART -->
+    <section id="section-restart" class="section">
+      <h1>Restart Services</h1>
+      <div class="card">
+        <p class="desc">Restart all Docker containers and optionally the Wings daemon.</p>
+        <button class="btn btn-warning" id="btnRestart">Restart All Services</button>
+      </div>
+    </section>
+
+    <!-- STOP -->
+    <section id="section-stop" class="section">
+      <h1>Stop Services</h1>
+      <div class="card">
+        <p class="desc">Stop all Docker containers. Data persists in the data/ directory.</p>
+        <button class="btn btn-danger" id="btnStop">Stop All Services</button>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section id="section-logs" class="section">
+      <h1>View Logs</h1>
+      <div class="card">
+        <p class="desc">View Docker container logs or local log files.</p>
+        <div class="log-buttons">
+          <button class="btn btn-primary" data-log="panel">Panel Log</button>
+          <button class="btn btn-primary" data-log="database">Database Log</button>
+          <button class="btn btn-primary" data-log="nginx">Nginx / Access Log</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="output-panel">
+    <div class="output-header" id="outputToggle">
+      <span class="output-title">Output</span>
+      <button class="btn btn-sm" id="btnClearOutput">Clear</button>
+    </div>
+    <pre id="outputContent"><span class="output-placeholder">Ready. Select an action to begin.</span></pre>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

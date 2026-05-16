@@ -25,3 +25,9 @@ desktop.ini
 
 # Release archives
 PteroWindows-*.zip
+
+# Node / Electron
+node_modules/
+package-lock.json
+dist/
+.DS_Store

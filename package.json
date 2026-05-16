@@ -1,0 +1,52 @@
+{
+  "name": "pterowindows",
+  "version": "2.0.0",
+  "description": "Pterodactyl Game Panel Manager for Windows - Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.pterowindows.app",
+    "productName": "PteroWindows",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "scripts/**/*",
+      "docker-compose.yml",
+      ".env.example",
+      "LICENSE",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": true
+    }
+  },
+  "keywords": ["pterodactyl", "panel", "wings", "games", "windows"],
+  "author": "LukePamlerr",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^42.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LukePamlerr/PteroWindows.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LukePamlerr/PteroWindows/issues"
+  },
+  "homepage": "https://github.com/LukePamlerr/PteroWindows"
+}

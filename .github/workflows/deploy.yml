@@ -7,10 +7,18 @@ on:
 
 jobs:
   validate:
-    name: Validate Scripts
+    name: Validate
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Validate batch scripts syntax
         shell: cmd
@@ -30,7 +38,6 @@ jobs:
           )
           )
           echo Validation complete
-          exit /b 0
 
       - name: Validate docker-compose.yml
         shell: cmd
@@ -38,55 +45,64 @@ jobs:
           @echo off
           where docker 2>nul >nul
           if errorlevel 1 (
-            echo [SKIP] Docker not available on this runner - skipping compose validation
+            echo [SKIP] Docker not available on this runner
           ) else (
             docker compose -f docker-compose.yml config >nul && echo [OK] docker-compose.yml is valid
           )
 
-      - name: Validate .env.example keys
-        shell: bash
-        run: |
-          echo "Environment keys in .env.example:"
-          grep -oP '^[A-Z_]+(?==)' .env.example | sort || echo "  No keys found (or no grep available)"
-
-      - name: Validate eggs are valid JSON
+      - name: Validate Electron app files exist
         shell: cmd
         run: |
           @echo off
-          for %%f in (eggs\*.json) do (
-            echo [CHECK] %%f
-            certutil -hashfile "%%f" SHA256 >nul 2>&1
-            if errorlevel 1 (echo   [FAIL] %%f) else (echo   [OK] %%f valid file)
-          )
+          if exist main.js (echo [OK] main.js) else (echo [FAIL] main.js missing)
+          if exist preload.js (echo [OK] preload.js) else (echo [FAIL] preload.js missing)
+          if exist renderer\index.html (echo [OK] renderer/index.html) else (echo [FAIL] renderer/index.html missing)
+          if exist renderer\styles.css (echo [OK] renderer/styles.css) else (echo [FAIL] renderer/styles.css missing)
+          if exist renderer\app.js (echo [OK] renderer/app.js) else (echo [FAIL] renderer/app.js missing)
+
+  build:
+    name: Build Electron App
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Electron app
+        run: npx electron-builder --win --config.extraMetadata.version=%GITHUB_REF_NAME:~1%
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PteroWindows-${{ github.ref_name }}
+          path: dist/
 
   release:
     name: Create Release
-    needs: validate
+    needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create release archive
-        run: |
-          set -e
-          STAGING="PteroWindows-${{ github.ref_name }}"
-          mkdir -p "$STAGING/scripts" "$STAGING/eggs"
-          cp PteroWindows.bat "$STAGING/"
-          cp install-panel.bat "$STAGING/"
-          cp install-wings.bat "$STAGING/"
-          cp update-all.bat "$STAGING/"
-          cp docker-compose.yml "$STAGING/"
-          cp .env.example "$STAGING/"
-          cp LICENSE "$STAGING/"
-          cp README.md "$STAGING/"
-          cp scripts/*.bat "$STAGING/scripts/"
-          cp eggs/*.json "$STAGING/eggs/"
-          zip -r "PteroWindows-${{ github.ref_name }}.zip" "$STAGING/"
-          echo "Archive created: PteroWindows-${{ github.ref_name }}.zip"
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: PteroWindows-${{ github.ref_name }}
+          path: dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: PteroWindows-*.zip
+          files: dist/**
           generate_release_notes: true

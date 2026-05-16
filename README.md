@@ -1,6 +1,6 @@
 # PteroWindows
 
-> **Pterodactyl Game Panel for Windows** - v1.12.2 / May 15, 2026
+> **Pterodactyl Game Panel for Windows** — v2.0.0 / Desktop App
 
 [![Validate](https://github.com/LukePamlerr/PteroWindows/actions/workflows/deploy.yml/badge.svg)](https://github.com/LukePamlerr/PteroWindows/actions/workflows/deploy.yml)
 [![Release](https://img.shields.io/github/v/release/LukePamlerr/PteroWindows)](https://github.com/LukePamlerr/PteroWindows/releases)
@@ -10,7 +10,7 @@
 
 ## Download
 
-[**Download latest release**](https://github.com/LukePamlerr/PteroWindows/releases) -- includes all scripts, eggs, and config files in a single `.zip` archive. No compilation or build step needed.
+[**Download latest release**](https://github.com/LukePamlerr/PteroWindows/releases) — Windows desktop app (`.exe` installer) or the original `.bat` scripts archive.
 
 ---
 
@@ -18,7 +18,7 @@
 
 PteroWindows deploys the [Pterodactyl Panel](https://github.com/pterodactyl/panel) (v1.12.2) on **Windows** using Docker Desktop. Pterodactyl is a free, open-source game server management panel that lets you host game servers (Minecraft, ARK, CS2, Valheim, etc.) in isolated Docker containers through a beautiful web UI.
 
-Pterodactyl is Linux-native. PteroWindows is the only way to run it on Windows with full functionality. All scripts are Windows **batch (.bat)** files -- no PowerShell required.
+PteroWindows v2.0.0 is a **Windows desktop application** built with Electron, featuring a dark black & blue UI, real-time command output, and all management tools in one window.
 
 ---
 
@@ -33,87 +33,50 @@ Pterodactyl is Linux-native. PteroWindows is the only way to run it on Windows w
 | WSL2 | any | `wsl --install` (as Admin in CMD) |
 | Git | 2.x+ | [download](https://git-scm.com/download/win) |
 
-### One-Command Menu
+### Desktop App
 
-```batch
+```
 git clone https://github.com/LukePamlerr/PteroWindows.git
 cd PteroWindows
 copy .env.example .env
+npm start
+```
+
+### Batch Scripts (fallback)
+
+```batch
 PteroWindows.bat
 ```
 
-Select **Option 1** to install the panel, then **Option 2** for Wings.
+---
+
+## Features
+
+- **Desktop UI** — Modern black & blue interface with real-time command output
+- **Panel Installer** — Full Docker stack (panel + MariaDB + Redis), app key generation, migrations, admin user creation, egg downloads
+- **Wings Installer** — WSL2 + Docker Engine + Wings daemon in Ubuntu
+- **One-Click Update** — Pulls latest images, runs migrations, updates Wings, refreshes eggs
+- **Custom Domain & SSL** — Set `APP_URL`, `LE_EMAIL`, restart panel with new domain
+- **Egg Importer** — 18 game/application eggs from official Pterodactyl repos
+- **Status Dashboard** — Real-time panel health, Docker status, container info, env config
+- **Log Viewer** — Panel, database, and nginx logs in-app
 
 ---
 
-## Menu System
+## Menu Reference
 
-Run `PteroWindows.bat` to open the main menu:
-
-```
-  ##############################################################
-  #         PteroWindows v1.0.0 - Pterodactyl for Windows      #
-  #         Panel v1.12.2 | Wings v1.12.1                      #
-  ##############################################################
-
-  1. Install Panel
-  2. Install Wings (Daemon via WSL2)
-  3. Update Everything
-  4. Configure Custom Domain
-  5. Download/Import Eggs
-  6. View Panel Status
-  7. Restart All Services
-  8. Stop All Services
-  9. View Logs
-  0. Exit
-```
-
-| Option | What it does |
+| Action | Description |
 |--------|-------------|
-| **1** | Full panel install: checks prerequisites, creates Docker stack (panel + MariaDB + Redis), generates app key, runs migrations, creates admin user, downloads eggs. Prompts for domain and auto-generates passwords. |
-| **2** | Wings daemon install: checks/installs WSL2, installs Docker Engine inside WSL, downloads latest Wings binary, configures systemd service, generates config template. |
-| **3** | One-command update: pulls latest panel Docker image, runs DB migrations, updates Wings binary in WSL, refreshes egg files. |
-| **4** | Set or change your custom domain. Updates `APP_URL` in `.env`, sets Let's Encrypt email, restarts panel. |
-| **5** | Download 18 game/application eggs from official pterodactyl repos. |
-| **6** | Shows container status, panel health check, current config, and data disk usage. |
-| **7** | Restarts all Docker containers + Wings daemon. |
-| **8** | Stops all Docker containers. |
-| **9** | View panel, database, or nginx access logs. |
-
----
-
-## Custom Domain & SSL
-
-Option **4** in the menu configures custom domains:
-
-1. Enter your domain (e.g. `panel.yourdomain.com` or `https://panel.yourdomain.com`)
-2. Optionally enter your email for Let's Encrypt SSL
-3. The panel restarts with the new domain
-
-### Prerequisites for SSL
-
-- Domain must be public (not `localhost` or a bare IP)
-- DNS A record points to this Windows machine
-- Ports 80 and 443 are open in Windows Firewall
-- Ports 80 and 443 are forwarded from your router (if behind NAT)
-
-### Without SSL
-
-Use `http://localhost` for local testing, or set `APP_URL=http://your.ip.address` for LAN access.
-
----
-
-## Scripts Reference
-
-| Script | Purpose |
-|--------|---------|
-| `PteroWindows.bat` | Main menu hub -- launch everything from here |
-| `install-panel.bat` | Standalone panel installer |
-| `install-wings.bat` | Standalone Wings installer |
-| `update-all.bat` | Standalone updater |
-| `scripts/import-eggs.bat` | Egg downloader (18 eggs from official repos) |
-| `docker-compose.yml` | Docker Compose stack (panel, database, cache) |
-| `.env.example` | Environment configuration template |
+| **Dashboard** | At-a-glance status of Docker, Panel, Wings, Eggs, and environment |
+| **Install Panel** | Full panel deployment with options for domain, email, admin credentials |
+| **Install Wings** | Wings daemon via WSL2 — Docker Engine, binary, systemd service |
+| **Update** | Pull latest images, run migrations, update Wings binary, refresh eggs |
+| **Domain Config** | Set custom domain, Let's Encrypt email, restart panel |
+| **Eggs** | Download 18 eggs from official pterodactyl/game-eggs and application-eggs |
+| **Status** | Container status, health check, env configuration, disk usage |
+| **Restart** | Restart all Docker containers + Wings daemon |
+| **Stop** | Stop all Docker containers |
+| **Logs** | View panel, database, or nginx logs |
 
 ---
 
@@ -122,65 +85,61 @@ Use `http://localhost` for local testing, or set `APP_URL=http://your.ip.address
 ```
                     Windows Host
    ┌─────────────────────────────────────────────────────┐
-   │  Docker Desktop                                      │
-   │  ┌──────────────┐  ┌──────────┐  ┌──────────────┐   │
-   │  │  Panel        │  │  MariaDB  │  │  Redis        │   │
-   │  │  (PHP 8.3     │  │  (MySQL   │  │  (Cache/      │   │
-   │  │   + Nginx)    │  │   compat) │  │   Queue)      │   │
-   │  │  :80/:443     │  │  :3306    │  │  :6379        │   │
-   │  └──────┬───────┘  └──────────┘  └──────────────┘   │
-   │         │                                            │
-   │  WSL2 ──┘                                            │
-   │  ┌─────────────────────────────────┐                 │
-   │  │  Wings Daemon  +  Docker Engine  │                 │
-   │  │  Game Server Containers          │                 │
-   │  └─────────────────────────────────┘                 │
-   └─────────────────────────────────────────────────────┘
+   │  PteroWindows Desktop App (Electron)                  │
+   │  ┌─────────────────────────────────────────────────┐  │
+   │  │  Docker Desktop                                  │  │
+   │  │  ┌──────────────┐  ┌──────────┐  ┌────────────┐  │  │
+   │  │  │  Panel        │  │  MariaDB  │  │  Redis      │  │  │
+   │  │  │  (PHP 8.3     │  │  (MySQL   │  │  (Cache/    │  │  │
+   │  │  │   + Nginx)    │  │   compat) │  │   Queue)    │  │  │
+   │  │  │  :80/:443     │  │  :3306    │  │  :6379      │  │  │
+   │  │  └──────┬───────┘  └──────────┘  └────────────┘  │  │
+   │  │         │                                          │  │
+   │  │  WSL2 ──┘                                          │  │
+   │  │  ┌─────────────────────────────────┐               │  │
+   │  │  │  Wings Daemon  +  Docker Engine  │               │  │
+   │  │  │  Game Server Containers          │               │  │
+   │  │  └─────────────────────────────────┘               │  │
+   │  └─────────────────────────────────────────────────────┘  │
+   └──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Persistent Data
+## Development
 
+```bash
+# Run in development
+npm start
+
+# Package for distribution
+npm run build
 ```
-data/
-├── database/       # MariaDB data files
-├── panel/
-│   ├── var/        # Panel runtime files
-│   ├── logs/       # Panel access and error logs
-│   ├── nginx/      # Custom nginx site configs
-│   └── certs/      # Let's Encrypt SSL certificates
-└── wings/          # Wings daemon config.yml
-```
+
+The app is built with:
+- **Electron** — Cross-platform desktop shell
+- **Node.js** — System command execution (Docker, WSL, PowerShell)
+- **Vanilla JS** — No frameworks, lightweight UI
+- **CSS** — Dark theme with black & blue color scheme
+
+Batch scripts (`*.bat`) remain as a fallback for headless/CI environments.
 
 ---
 
-## Eggs
+## Custom Domain & SSL
 
-Shipped eggs (in `eggs/`):
+Configure a custom domain from the **Domain Config** section:
 
-| File | Type | Source |
-|------|------|--------|
-| `egg-paper.json` | Minecraft Paper | [game-eggs](https://github.com/pterodactyl/game-eggs) |
-| `egg-spigot.json` | Minecraft Spigot | [game-eggs](https://github.com/pterodactyl/game-eggs) |
-| `egg-fabric.json` | Minecraft Fabric | [game-eggs](https://github.com/pterodactyl/game-eggs) |
+1. Enter your domain (e.g. `panel.yourdomain.com`)
+2. Optionally enter your email for Let's Encrypt SSL
+3. Click **Apply Domain** — the panel restarts with the new domain
 
-Run `scripts\import-eggs.bat` to download 18 eggs including Forge, Purpur, Folia, BungeeCord, NeoForge, Gitea, Grafana, and more.
+### Prerequisites for SSL
 
-Sources: [game-eggs](https://github.com/pterodactyl/game-eggs) | [application-eggs](https://github.com/pterodactyl/application-eggs) | [eggs.pterodactyl.io](https://eggs.pterodactyl.io/)
-
----
-
-## Updates
-
-Menu **Option 3** or:
-```batch
-update-all.bat
-```
-
-Pulls latest panel Docker image, runs migrations, updates Wings binary, refreshes eggs.
-
-GitHub Actions also refreshes eggs weekly via `.github/workflows/update-eggs.yml`.
+- Public domain (not `localhost` or bare IP)
+- DNS A record points to this Windows machine
+- Ports 80 and 443 open in Windows Firewall
+- Ports 80 and 443 forwarded from router (if behind NAT)
 
 ---
 
@@ -188,7 +147,7 @@ GitHub Actions also refreshes eggs weekly via `.github/workflows/update-eggs.yml
 
 | Problem | Solution |
 |---------|----------|
-| Panel won't start | `docker compose logs panel` |
+| Panel won't start | Check **Logs** > Panel Log, or run `docker compose logs panel` |
 | DB connection refused | Wait 30-60s for MariaDB init |
 | Port 80/443 in use | Edit `.env`: `HTTP_PORT=8080`, `HTTPS_PORT=8443` |
 | Wings won't connect | Verify `data/wings/config.yml` matches panel node config |
@@ -201,19 +160,23 @@ GitHub Actions also refreshes eggs weekly via `.github/workflows/update-eggs.yml
 
 ```
 PteroWindows/
-├── PteroWindows.bat            # Main menu (launch this)
-├── install-panel.bat           # Panel installer
-├── install-wings.bat           # Wings daemon installer
-├── update-all.bat              # Auto-updater
+├── main.js                     # Electron main process
+├── preload.js                  # Context bridge (IPC)
+├── renderer/
+│   ├── index.html              # Desktop UI
+│   ├── styles.css              # Black & blue theme
+│   └── app.js                  # Frontend logic
+├── package.json                # Node.js manifest
+├── PteroWindows.bat            # Batch menu (fallback)
+├── install-panel.bat           # Panel installer (fallback)
+├── install-wings.bat           # Wings installer (fallback)
+├── update-all.bat              # Updater (fallback)
 ├── docker-compose.yml          # Docker stack
 ├── .env.example                # Config template
 ├── .gitignore
 ├── LICENSE
 ├── README.md
-├── eggs/
-│   ├── egg-paper.json
-│   ├── egg-spigot.json
-│   └── egg-fabric.json
+├── eggs/                       # Game server eggs
 ├── scripts/
 │   └── import-eggs.bat
 └── .github/workflows/
